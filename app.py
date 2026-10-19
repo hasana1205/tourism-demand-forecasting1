@@ -187,39 +187,107 @@ with tab_forecast:
     else:
         st.warning("At least 12 monthly observations are required to train a basic forecast model.")
 
-with tab_weather:
-    st.subheader(f"Current weather — {destination}")
-    st.write("Weather data uses the Open-Meteo API, which does not require an API key.")
-    coords = {
-        "Chennai": (13.0827, 80.2707), "Ooty": (11.4102, 76.6950),
-        "Coimbatore": (11.0168, 76.9558), "Madurai": (9.9252, 78.1198),
-        "Kodaikanal": (10.2381, 77.4892), "Bengaluru": (12.9716, 77.5946),
-        "Delhi": (28.6139, 77.2090), "Mumbai": (19.0760, 72.8777)
-    }
-    lat, lon = coords[destination]
-    if st.button("Get current weather", type="primary"):
-        try:
-            response = requests.get(
-                "https://api.open-meteo.com/v1/forecast",
-                params={"latitude": lat, "longitude": lon, "current": "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m"},
-                timeout=12
-            )
-            response.raise_for_status()
-            weather = response.json().get("current", {})
-            a, b, c = st.columns(3)
-            a.metric("Temperature", f"{weather.get('temperature_2m', '—')} °C")
-            b.metric("Feels like", f"{weather.get('apparent_temperature', '—')} °C")
-            c.metric("Humidity", f"{weather.get('relative_humidity_2m', '—')}%")
-            d, e, f = st.columns(3)
-            d.metric("Precipitation", f"{weather.get('precipitation', '—')} mm")
-            e.metric("Wind speed", f"{weather.get('wind_speed_10m', '—')} km/h")
-            f.metric("Weather code", str(weather.get("weather_code", "—")))
-            st.caption(f"Observation time: {weather.get('time', 'not provided')}. Weather code is the provider's numeric condition code.")
-        except Exception:
-            st.error("Weather could not be retrieved. Check your internet connection and try again.")
-    else:
-        st.info("Choose a destination, then press **Get current weather** to load live conditions.")
+    st.subheader("Worldwide Current Weather 🌍")
+    st.write("Enter any city name to check its current weather.")
 
+    city = st.text_input(
+        "Enter city name",
+        value=destination,
+        placeholder="Example: Chennai, London, Singapore"
+    )
+    if st.button("Get current weather", type="primary"):
+        if not city.strip():
+            st.warning("Please enter a city name.")
+        else:
+            try:
+                geo_response = requests.get(
+                    "https://geocoding-api.open-meteo.com/v1/search",
+                    params={
+                        "name": city.strip(),
+                        "count": 10,
+                        "language": "en",
+                        "format": "json"
+                    },
+                    timeout=12
+                )
+                geo_response.raise_for_status()
+                locations = geo_response.json().get("results", [])
+
+                if not locations:
+                    st.error("City not found. Please check the spelling.")
+                else:
+                    location = locations[0]
+                    lat = location["latitude"]
+                    lon = location["longitude"]
+
+                    place_name = location["name"]
+                    country = location.get("country", "")
+                    admin = location.get("admin1", "")
+
+                    st.write(
+                        f"**Location:** {place_name}, "
+                        f"{admin + ', ' if admin else ''}{country}"
+                    )
+
+                    response = requests.get(
+                        "https://api.open-meteo.com/v1/forecast",
+                        params={
+                            "latitude": lat,
+                            "longitude": lon,
+                            "current": (
+                                "temperature_2m,"
+                                "relative_humidity_2m,"
+                                "apparent_temperature,"
+                                "precipitation,"
+                                "weather_code,"
+                                "wind_speed_10m"
+                            )
+                        },
+                        timeout=12
+                    )
+                    response.raise_for_status()
+                    weather = response.json().get("current", {})
+
+                    a, b, c = st.columns(3)
+                    a.metric(
+                        "Temperature",
+                        f"{weather.get('temperature_2m', '—')} °C"
+                    )
+                    b.metric(
+                        "Feels like",
+                        f"{weather.get('apparent_temperature', '—')} °C"
+                    )
+                    c.metric(
+                        "Humidity",
+                        f"{weather.get('relative_humidity_2m', '—')}%"
+                    )
+
+                    d, e, f = st.columns(3)
+                    d.metric(
+                        "Precipitation",
+                        f"{weather.get('precipitation', '—')} mm"
+                    )
+                    e.metric(
+                        "Wind speed",
+                        f"{weather.get('wind_speed_10m', '—')} km/h"
+                    )
+                    f.metric(
+                        "Weather code",
+                        str(weather.get("weather_code", "—"))
+                    )
+
+                    st.caption(
+                        f"Observation time: "
+                        f"{weather.get('time', 'not provided')}"
+                    )
+
+            except requests.RequestException:
+                st.error(
+                    "Weather could not be retrieved. "
+                    "Check your internet connection and try again."
+                )
+            except (KeyError, TypeError, ValueError):
+                st.error("Unexpected weather response. Please try again.")
 with tab_chatbot:
     st.subheader("Tourism assistant")
     st.write("Ask about the dashboard data, forecasts, seasonality, or destination weather.")
