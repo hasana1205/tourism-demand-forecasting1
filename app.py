@@ -19,7 +19,19 @@ st.markdown("""
     .hero {padding: 1.5rem 1.8rem; border-radius: 18px; background: linear-gradient(120deg,#123b55,#168b8b); color: white; margin-bottom: 1rem;}
     .hero h1 {color:white; margin-bottom:.25rem;}
     .hero p {color:#e7f7f7; font-size:1.05rem;}
-    div[data-testid="stMetric"] {background:white; padding:1rem; border-radius:14px; border:1px solid #e8edf3;}
+    div[data-testid="stMetric"] {
+    background: white;
+    color: black !important;
+    padding: 1rem;
+    border-radius: 14px;
+    border: 1px solid #e8edf3;
+}
+
+div[data-testid="stMetric"] label,
+div[data-testid="stMetric"] [data-testid="stMetricValue"],
+div[data-testid="stMetric"] [data-testid="stMetricDelta"] {
+    color: black !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
